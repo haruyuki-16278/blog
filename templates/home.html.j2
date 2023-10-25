@@ -1,0 +1,51 @@
+{% extends "base.html.j2" %}
+{% block title %}ホーム - Flaskしりとり{% endblock title %}
+{% block script %}
+<script>
+  const getIsRoomReady = async (roomId) => {
+    const response = await fetch(`/api/room?roomid=${roomId}`);
+    const result = JSON.parse(await response.text());
+    if (result.ready) {
+      window.localStorage.setItem(
+        'room',
+        JSON.stringify({
+          'id': roomId,
+          'member': result.member
+        })
+      );
+      window.location.href = '/game';
+    }
+  };
+
+  const homeControl = () => {
+    return {
+      isMatchingStarted: false,
+      async onJoinClicked () {
+        this.isMatchingStarted = true;
+        const myId = window.localStorage.getItem('myId') ?? self.crypto.randomUUID();
+        window.localStorage.setItem('myId', myId);
+        const response = await fetch('/api/room', {
+          method: 'post',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            id: myId
+          })
+        });
+        const result = await response.text();
+        const roomId = JSON.parse(result).roomId;
+
+        window.setInterval(() => getIsRoomReady(roomId), 1000);
+      }
+    }
+  };
+</script>
+{% endblock script %}
+{% block main %}
+<main x-data="homeControl()">
+  <h1>しりとり対戦</h1>
+  <button x-show="!isMatchingStarted" @click="onJoinClicked()">ルームに入る</button>
+  <p x-show="isMatchingStarted">マッチング中</p>
+</main>
+{% endblock main %}
