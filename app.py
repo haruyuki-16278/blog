@@ -70,9 +70,9 @@ def join() -> dict:
         params = request.args.to_dict()
         roomid = params['roomid']
 
-        # ルームのステータスが 'playing' なら 'ready' がTrueに
+        # ルームのステータスが 'playing' ならTrueに
         # そうでないならFalseになる
-        ready = len(rooms[roomid][ROOM_KEY_STATUS]) == STATUS_PLAYING
+        ready = rooms[roomid][ROOM_KEY_STATUS] == STATUS_PLAYING
         # ルームの準備状況とメンバーを返す
         return {'ready': ready, 'member': rooms[roomid][ROOM_KEY_PLAYERS]}
 
