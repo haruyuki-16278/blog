@@ -6,6 +6,14 @@ app = Flask(__name__)
 
 rooms = {}
 
+# consts
+ROOM_KEY_PLAYERS = 'players'
+ROOM_KEY_SHIRITORI = 'shiritori'
+ROOM_KEY_STATUS = 'status'
+STATUS_MATCHING = 'matching'
+STATUS_PLAYING = 'playing'
+STATUS_FINISHED = 'finished'
+
 @app.route('/')
 def index() -> str:
     """
@@ -31,13 +39,13 @@ def join() -> dict:
         roomids = list(rooms.keys())
 
         if (len(roomids) > 0\
-                and len(rooms[roomids[-1]]['players']) == 1):
+                and rooms[roomids[-1]][ROOM_KEY_STATUS] == STATUS_MATCHING):
             # ルームが1以上あり、
             # かつ最後のルームのプレイヤーが一人なら
 
             # ルームに参加してステータスをプレイ中にする
-            rooms[roomids[-1]]['players'].append(data['id'])
-            rooms[roomids[-1]]['status'] = 'playing'
+            rooms[roomids[-1]][ROOM_KEY_PLAYERS].append(data['id'])
+            rooms[roomids[-1]][ROOM_KEY_STATUS] = STATUS_PLAYING
             # 入ったルームを返す
             return {'roomId': roomids[-1]}
         
@@ -48,9 +56,9 @@ def join() -> dict:
             # ルームを新しく作成する
             roomid = str(uuid.uuid4())
             rooms[roomid] = {
-                'players': [data['id']],
-                'shiritori': ['しりとり'],
-                'status': 'matching'
+                ROOM_KEY_PLAYERS: [data['id']],
+                ROOM_KEY_SHIRITORI: ['しりとり'],
+                ROOM_KEY_STATUS: STATUS_MATCHING
             }
             # 入ったルームを返す
             return {'roomId': roomid}
@@ -64,9 +72,9 @@ def join() -> dict:
 
         # ルームのステータスが 'playing' なら 'ready' がTrueに
         # そうでないならFalseになる
-        ready = len(rooms[roomid]['status']) == 'playing'
+        ready = len(rooms[roomid][ROOM_KEY_STATUS]) == STATUS_PLAYING
         # ルームの準備状況とメンバーを返す
-        return {'ready': ready, 'member': rooms[roomid]['players']}
+        return {'ready': ready, 'member': rooms[roomid][ROOM_KEY_PLAYERS]}
 
 @app.route('/shiritori/<roomid>', methods=["POST", "GET"])
 def shiritori(roomid) -> dict:
@@ -86,7 +94,7 @@ def shiritori(roomid) -> dict:
         answer = data['answer']
 
         # ルーム情報からしりとりの履歴を取得
-        shiritories = rooms[roomid]['shiritori']
+        shiritories = rooms[roomid][ROOM_KEY_SHIRITORI]
         lastword = shiritories[-1]
 
         # 最後のことばの最後の文字と回答の最初の文字が等しいかどうか
@@ -97,7 +105,7 @@ def shiritori(roomid) -> dict:
         is_appeared = answer in shiritories
 
         # ルームの履歴に回答を追加する
-        rooms[roomid]['shiritori'].append(answer)
+        rooms[roomid][ROOM_KEY_SHIRITORI].append(answer)
 
         if (not is_same_last_letter_and_firtst_lettar\
                 or is_last_letter_NN\
@@ -105,7 +113,7 @@ def shiritori(roomid) -> dict:
             # しりとりのルールを守れていない回答なら
 
             # ルームのステータスを 'finished' にする
-            rooms[roomid]['status'] = 'finished'
+            rooms[roomid][ROOM_KEY_STATUS] = STATUS_FINISHED
             # 敗北したことを返す
             return {'result': 'defeat'}
 
@@ -119,15 +127,15 @@ def shiritori(roomid) -> dict:
         # GETのときの処理
 
         # ルームのしりとり履歴を取得
-        shiritories = rooms[roomid]['shiritori']
+        shiritories = rooms[roomid][ROOM_KEY_SHIRITORI]
 
-        if (rooms[roomid]['status'] == 'finished'):
+        if (rooms[roomid][ROOM_KEY_STATUS] == STATUS_FINISHED):
             # ルームのステータスが 'finished' なら
 
             # 勝利したことを返す
             return {'result': 'victory'}
 
-        elif ((rooms[roomid]['status'] == 'playing')):
+        elif ((rooms[roomid][ROOM_KEY_STATUS] == STATUS_PLAYING)):
             # ルームのステータスがプレイ中なら
 
             # 現在の最後の回答を返す
