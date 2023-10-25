@@ -81,6 +81,8 @@ def shiritori(roomid) -> dict:
     """
     しりとりをやり取りするAPI
 
+    pathparamからルームIDを取得する
+
     POSTならしりとりに回答する
     GETなら現在の最後の回答を取得する
     """
