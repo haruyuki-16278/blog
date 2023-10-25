@@ -1,6 +1,6 @@
 import uuid
 import json
-from flask import Flask, request
+from flask import Flask, request, render_template, redirect, jsonify
 
 app = Flask(__name__)
 
@@ -19,7 +19,15 @@ def index() -> str:
     """
     '/'にアクセスされたときの処理を行う関数
     """
-    return 'hello world!'
+    return redirect('/home')
+
+@app.route('/home')
+def home() -> str:
+    return render_template("home.html.j2")
+
+@app.route('/game')
+def game() -> str:
+    return render_template("game.html.j2")
 
 @app.route('/api/room', methods=["POST", "GET"])
 def join() -> dict:
@@ -47,7 +55,7 @@ def join() -> dict:
             rooms[roomids[-1]][ROOM_KEY_PLAYERS].append(data['id'])
             rooms[roomids[-1]][ROOM_KEY_STATUS] = STATUS_PLAYING
             # 入ったルームを返す
-            return {'roomId': roomids[-1]}
+            return jsonify({'roomId': roomids[-1]})
         
         else:
             # ルームが無い
@@ -61,7 +69,7 @@ def join() -> dict:
                 ROOM_KEY_STATUS: STATUS_MATCHING
             }
             # 入ったルームを返す
-            return {'roomId': roomid}
+            return jsonify({'roomId': roomid})
 
     elif (request.method == "GET"):
         # GETのときの処理
@@ -74,7 +82,10 @@ def join() -> dict:
         # そうでないならFalseになる
         ready = rooms[roomid][ROOM_KEY_STATUS] == STATUS_PLAYING
         # ルームの準備状況とメンバーを返す
-        return {'ready': ready, 'member': rooms[roomid][ROOM_KEY_PLAYERS]}
+        return jsonify({
+            'ready': ready,
+            'member': rooms[roomid][ROOM_KEY_PLAYERS]
+        })
 
 @app.route('/api/shiritori/<roomid>', methods=["POST", "GET"])
 def shiritori(roomid) -> dict:
@@ -117,13 +128,13 @@ def shiritori(roomid) -> dict:
             # ルームのステータスを 'finished' にする
             rooms[roomid][ROOM_KEY_STATUS] = STATUS_FINISHED
             # 敗北したことを返す
-            return {'result': 'defeat'}
+            return jsonify({'result': 'defeat'})
 
         else:
             # しりとりのルールが守られている回答なら
 
             # 回答が成功したことを返す
-            return {'result': 'collect'}
+            return jsonify({'result': 'collect'})
 
     elif (request.method == "GET"):
         # GETのときの処理
@@ -135,16 +146,16 @@ def shiritori(roomid) -> dict:
             # ルームのステータスが 'finished' なら
 
             # 勝利したことを返す
-            return {'result': 'victory'}
+            return jsonify({'result': 'victory'})
 
         elif ((rooms[roomid][ROOM_KEY_STATUS] == STATUS_PLAYING)):
             # ルームのステータスがプレイ中なら
 
             # 現在の最後の回答を返す
-            return {
+            return jsonify({
                 'lastword': shiritories[-1],
                 'words': len(shiritories)
-            }
+            })
 
 if __name__ == '__main__':
     app.run(
