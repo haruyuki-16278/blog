@@ -21,7 +21,7 @@ def index() -> str:
     """
     return 'hello world!'
 
-@app.route('/room', methods=["POST", "GET"])
+@app.route('/api/room', methods=["POST", "GET"])
 def join() -> dict:
     """
     しりとりのルームに関する状態を取得するAPI
@@ -76,7 +76,7 @@ def join() -> dict:
         # ルームの準備状況とメンバーを返す
         return {'ready': ready, 'member': rooms[roomid][ROOM_KEY_PLAYERS]}
 
-@app.route('/shiritori/<roomid>', methods=["POST", "GET"])
+@app.route('/api/shiritori/<roomid>', methods=["POST", "GET"])
 def shiritori(roomid) -> dict:
     """
     しりとりをやり取りするAPI
