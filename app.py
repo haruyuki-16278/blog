@@ -51,6 +51,36 @@ def join() -> dict:
     else:
         return {'error': 'invalid request'}
 
+@app.route('/shiritori/<roomid>', methods=["POST", "GET"])
+def shiritori(roomid) -> dict:
+    if (request.method == "POST"):
+        data = json.loads(request.data.decode('utf-8'))
+        answer = data['answer']
+        shiritories = rooms[roomid]['shiritori']
+        lastword = shiritories[-1]
+        is_same_last_letter_and_firtst_lettar = lastword[-1] == answer[0]
+        is_last_letter_NN = answer[-1] == 'ん'
+        is_appeared = answer in shiritories
+        if (not is_same_last_letter_and_firtst_lettar\
+                or is_last_letter_NN\
+                or is_appeared):
+            rooms[roomid]['status'] = 'finished'
+            return {'result': 'defeat'}
+        else:
+            rooms[roomid]['shiritori'].append(answer)
+            return {'result': 'collect'}
+    elif (request.method == "GET"):
+        shiritories = rooms[roomid]['shiritori']
+        if (rooms[roomid]['status'] == 'finished'):
+            return {'result': 'victory'}
+        else:
+            return {
+                'lastword': shiritories[-1],
+                'words': len(shiritories)
+            }
+    else:
+        return {'error': 'invalid request'}
+
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
