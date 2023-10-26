@@ -1,0 +1,97 @@
+{% extends "base.html.j2" %}
+{% block title %}対戦 - Flaskしりとり{% endblock title %}
+{% block script %}
+<script>
+  const gameControl = () => {
+    return {
+      answer: '',
+      shiritories: [],
+      room: JSON.parse(window.localStorage.getItem('room')),
+      myId: window.localStorage.getItem('myId'),
+      lastword: '',
+      words: 0,
+      isFirstAttack: undefined,
+      pollingShiritori: undefined,
+      finished: false,
+      victory: false,
+
+      async init () {
+        await this.getShiritori();
+        this.isFirstAttack = this.room.member.indexOf(this.myId) === 0;
+
+        if (!this.isMyTurn()) {
+          const pollingFunc = async () => {
+            await this.getShiritori();
+            if (this.isMyTurn()) {
+              window.clearInterval(this.pollingShiritori);
+            }
+          };
+          this.pollingShiritori = window.setInterval(pollingFunc, 1000);
+        }
+      },
+
+      async getShiritori () {
+        const request = await fetch(`/api/shiritori/${this.room.id}`);
+        const result = JSON.parse(await request.text());
+        this.lastword = result?.lastword;
+        this.words = result?.words;
+        this.finished = result?.result === 'victory';
+        this.victory = result?.result === 'victory';
+      },
+
+      async postShiritori () {
+        const request = await fetch(
+          `/api/shiritori/${this.room.id}`, {
+            method: 'post',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              'answer': this.answer
+            })
+          }
+        );
+        const result = JSON.parse(await request.text());
+        this.finished = result.result === 'defeat';
+        if (!this.finished) {
+          const pollingFunc = async () => {
+            await this.getShiritori();
+            if (this.isMyTurn() || this.finished) {
+              window.clearInterval(this.pollingShiritori);
+            }
+          };
+          this.pollingShiritori = window.setInterval(pollingFunc, 1000);
+          this.lastword = this.answer;
+          this.answer = '';
+          this.words++;
+        }
+      },
+
+      isMyTurn () {
+        return this.isFirstAttack
+                ? this.words % 2 === 1
+                : this.words % 2 === 0;
+      }
+    }
+  };
+</script>
+{% endblock script %}
+{% block main %}
+<main x-data="gameControl()">
+  <section>
+    <p><span x-text="isMyTurn() ? 'あなたの' : '相手の'"></span>ターンです。</p>
+    <p><span x-text="lastword"></span> → ?</p>
+  </section>
+  <input type="text" x-model="answer">
+  <button
+      @click="postShiritori()"
+      x-bind:disabled="!isMyTurn() || finished ? true : undefined">
+    回答する
+  </button>
+
+  <section x-show="finished">
+    <p><span x-text="victory ? 'あなた' : '相手'"></span>の勝利です</p>
+    <button @click="window.location.href = '/home'">トップに戻る</button>
+  </section>
+</main>
+{% endblock main %}
